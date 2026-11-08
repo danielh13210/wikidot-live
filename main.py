@@ -4,7 +4,7 @@ import httpx
 import re
 import os
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 BASE_URL=os.environ['BASE_URL']
 
 async def get_ftml(page):
@@ -39,7 +39,7 @@ async def get_creation_date(page):
   date_row=page.locator("#page-version-info > table > tbody > tr").nth(1)
   date_field=date_row.locator("> td").nth(1)
   date=(await date_field.text_content()).strip()
-  return datetime.strptime(date,"%d %b %Y, %H:%M").isoformat()
+  return datetime.strptime(date,"%d %b %Y, %H:%M").replace(tzinfo=timezone.utc).isoformat(timespec="seconds")
 
 #work around a wikidot bug
 async def get_wikidot_token7():
