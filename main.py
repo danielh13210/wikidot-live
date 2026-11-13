@@ -6,12 +6,20 @@ import os
 import time
 from datetime import datetime, timezone
 BASE_URL=os.environ['BASE_URL']
+RUSSIAN_BACKEND=os.environ.get('RUSSIAN_BACKEND',False)
 
 async def get_ftml(page):
+  await page.locator("#more-options-button").click()
   await page.locator("#view-source-button").dispatch_event("click")
-  content=page.locator("#action-area > div.page-source")
-  await content.wait_for(state="attached")
-  return await content.inner_text()
+  if RUSSIAN_BACKEND:
+    content=page.locator("#source-code > textarea")
+    await content.wait_for(state="attached")
+    await asyncio.sleep(0.2)
+    return await content.input_value()
+  else:
+    content=page.locator("#action-area > div.page-source")
+    await content.wait_for(state="attached")
+    return await content.inner_text()
 
 async def get_creation_date(page):
   await page.locator("#history-button").click()
@@ -22,7 +30,7 @@ async def get_creation_date(page):
     has_text="»"
   )
   page_count=page.locator("#revision-list > div.pager > span.pager-no").first
-  await page.locator("#history-form-1 > div.buttons").wait_for(state="attached")
+  await page.locator("#revision-list > div.buttons").wait_for(state="attached")
   await asyncio.sleep(0.1)
   print("start")
   if (await next_button.count())>0:
@@ -36,10 +44,17 @@ async def get_creation_date(page):
   creation_revision=page.locator("#revision-list > table.page-history > tbody > tr").last
   view_first=creation_revision.locator("td.optionstd > a").first
   await view_first.click()
-  date_row=page.locator("#page-version-info > table > tbody > tr").nth(1)
+  if RUSSIAN_BACKEND:
+    date_row=page.locator("#action-area-top table > tbody > tr").nth(1)
+  else:
+    date_row=page.locator("#page-version-info > table > tbody > tr").nth(1)
   date_field=date_row.locator("> td").nth(1)
   date=(await date_field.text_content()).strip()
-  return datetime.strptime(date,"%d %b %Y, %H:%M").replace(tzinfo=timezone.utc).isoformat(timespec="seconds")
+  if RUSSIAN_BACKEND:
+    date=datetime.strptime(date,"%H:%M %d.%m.%Y")
+  else:
+    date=datetime.strptime(date,"%d %b %Y, %H:%M")
+  return date.replace(tzinfo=timezone.utc).isoformat(timespec="seconds")
 
 #work around a wikidot bug
 async def get_wikidot_token7():
@@ -73,7 +88,8 @@ async def main():
     )
     context=await browser.new_context()
     token=await get_wikidot_token7()
-    await context.add_cookies([{"name":"wikidot_token7","value":token,"url":f'{BASE_URL}/'}])
+    if not RUSSIAN_BACKEND:
+      await context.add_cookies([{"name":"wikidot_token7","value":token,"url":f'{BASE_URL}/'}])
     async def ftml_server_handler(reader: asyncio.StreamReader,writer: asyncio.StreamWriter):
       await handle_ftml(reader,writer,context)
     server = await asyncio.start_server(ftml_server_handler, '127.0.0.1', 9999)
