@@ -19,7 +19,7 @@ async def get_creation_date(page):
   next_button=page.locator("#revision-list > div.pager > span.target").last
   next_button=next_button.filter(
     has=page.locator("a"),
-    has_text="next »"
+    has_text="»"
   )
   page_count=page.locator("#revision-list > div.pager > span.pager-no").first
   await page.locator("#history-form-1 > div.buttons").wait_for(state="attached")
