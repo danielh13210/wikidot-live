@@ -6,7 +6,7 @@ import os
 import time
 from datetime import datetime, timezone
 BASE_URL=os.environ['BASE_URL']
-RUSSIAN_BACKEND=os.environ.get('RUSSIAN_BACKEND',False)
+RUSSIAN_BACKEND=bool(int(os.environ.get('RUSSIAN_BACKEND','0')))
 
 async def get_ftml(page):
   await page.locator("#more-options-button").click()
@@ -30,7 +30,10 @@ async def get_creation_date(page):
     has_text="»"
   )
   page_count=page.locator("#revision-list > div.pager > span.pager-no").first
-  await page.locator("#revision-list > div.buttons").wait_for(state="attached")
+  if RUSSIAN_BACKEND:
+    await page.locator("#revision-list > div.buttons").wait_for(state="attached")
+  else:
+    await page.locator("#history-form-1 > div.buttons").wait_for(state="attached")
   await asyncio.sleep(0.1)
   print("start")
   if (await next_button.count())>0:
@@ -83,7 +86,12 @@ async def main():
       headless=not bool(os.environ.get('PW_DISPLAY',False)),
       args=[
              "--disable-blink-features=AutomationControlled", # Prevents native override injection
-             "--disable-infobars"
+             "--disable-infobars",
+            '--use-gl=angle',
+            '--use-angle=default',
+            '--enable-webgl',
+            '--ignore-gpu-blocklist',
+            '--enable-gpu-rasterization',
            ]
     )
     context=await browser.new_context()
