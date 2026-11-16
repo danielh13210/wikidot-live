@@ -34,7 +34,7 @@ async def get_creation_date(page):
     await page.locator("#revision-list > div.buttons").wait_for(state="attached")
   else:
     await page.locator("#history-form-1 > div.buttons").wait_for(state="attached")
-  await asyncio.sleep(0.1)
+  await asyncio.sleep(0.5)
   print("start")
   if (await next_button.count())>0:
     print("found")
