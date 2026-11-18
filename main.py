@@ -5,6 +5,7 @@ import re
 import os
 import time
 from datetime import datetime, timezone
+import sys
 BASE_URL=os.environ['BASE_URL']
 RUSSIAN_BACKEND=bool(int(os.environ.get('RUSSIAN_BACKEND','0')))
 
@@ -100,7 +101,7 @@ async def main():
       await context.add_cookies([{"name":"wikidot_token7","value":token,"url":f'{BASE_URL}/'}])
     async def ftml_server_handler(reader: asyncio.StreamReader,writer: asyncio.StreamWriter):
       await handle_ftml(reader,writer,context)
-    server = await asyncio.start_server(ftml_server_handler, '127.0.0.1', 9999)
+    server = await asyncio.start_server(ftml_server_handler, '127.0.0.1', int(sys.argv[1]))
     try:
       await server.serve_forever()
     finally:
