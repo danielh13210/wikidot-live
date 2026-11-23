@@ -69,17 +69,20 @@ async def get_wikidot_token7():
 
 async def handle_ftml(reader: asyncio.StreamReader,writer: asyncio.StreamWriter,context):
   page=await context.new_page()
-  page_id=(await reader.readline()).decode().strip()
-  await page.goto(f"{BASE_URL}/{page_id}")
-  content=(await get_ftml(page)).encode('utf-8')
-  writer.write(content)
-  writer.write(b'\n')
-  creation_date=await get_creation_date(page)
-  writer.write(f'..CREATION: {creation_date}'.encode('utf-8'))
-  writer.write(b'\n')
-  await writer.drain()
-  await page.close()
-  writer.close()
+  try:
+    page_id=(await reader.readline()).decode().strip()
+    response=await page.goto(f"{BASE_URL}/{page_id}")
+    if response and not response.ok: raise Exception("Page not found")
+    content=(await get_ftml(page)).encode('utf-8')
+    writer.write(content)
+    writer.write(b'\n')
+    creation_date=await get_creation_date(page)
+    writer.write(f'..CREATION: {creation_date}'.encode('utf-8'))
+    writer.write(b'\n')
+  finally:
+    await writer.drain()
+    await page.close()
+    writer.close()
 
 async def main():
   async with async_playwright() as p:
@@ -100,7 +103,7 @@ async def main():
     if not RUSSIAN_BACKEND:
       await context.add_cookies([{"name":"wikidot_token7","value":token,"url":f'{BASE_URL}/'}])
     async def ftml_server_handler(reader: asyncio.StreamReader,writer: asyncio.StreamWriter):
-      await handle_ftml(reader,writer,context)
+        await handle_ftml(reader,writer,context)
     server = await asyncio.start_server(ftml_server_handler, '127.0.0.1', int(sys.argv[1]))
     try:
       await server.serve_forever()
